@@ -1,0 +1,7 @@
+id,channel,name,market,spend,impressions,clicks,conversions,revenue
+AD-001,Meta,US · Creator Conversion,US,4850.0,162000,4820,162,14580.0
+AD-002,TikTok,US · UGC Discovery,US,3900.0,205000,6600,111,5850.0
+AD-003,Google,Search · Branded Intent,US,2120.0,84000,3180,174,12140.0
+AD-004,Meta,UK · Lookalike Test,UK,2800.0,99000,2670,63,4095.0
+AD-005,TikTok,CA · Creator Spark,CA,1450.0,78000,2960,72,5100.0
+AD-006,Meta,DE · Awareness Test,DE,1100.0,65000,980,18,1050.0

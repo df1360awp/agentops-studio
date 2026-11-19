@@ -1,0 +1,16 @@
+id,channel,product,market,rating,comment,created_at
+FB-001,Shopify,CreatorAudio S1,US,2,Recording export froze twice and I lost my project file.,2026-11-19T12:01:24+00:00
+FB-002,TikTok Shop,CreatorAudio S1,US,1,My recorded audio disappears after saving the session.,2026-11-19T09:01:24+00:00
+FB-003,Amazon,CreatorAudio S1,US,2,Export WAV file failed after the latest firmware update.,2026-11-19T06:01:24+00:00
+FB-004,Website,CreatorAudio S1,UK,2,Bluetooth pairing is confusing. Setup took nearly one hour.,2026-11-19T03:01:24+00:00
+FB-005,TikTok Shop,CreatorAudio S1,US,3,I cannot connect bluetooth with my phone on the first attempt.,2026-11-19T00:01:24+00:00
+FB-006,Amazon,CreatorAudio S1,DE,4,"Amazing sound, shipping took a little longer than expected.",2026-11-18T21:01:24+00:00
+FB-007,Shopify,CreatorAudio S1,US,5,Great product; fast setup and a clean recording sound.,2026-11-18T18:01:24+00:00
+FB-008,Website,CreatorAudio S1,US,2,No clear onboarding guide. Need step-by-step setup instructions.,2026-11-18T15:01:24+00:00
+FB-009,TikTok Shop,CreatorAudio S1,CA,5,Love the portable studio. Creator workflow is much faster.,2026-11-18T12:01:24+00:00
+FB-010,Amazon,CreatorAudio S1,US,3,Package delayed by seven days. Tracking information was unclear.,2026-11-18T09:01:24+00:00
+FB-011,Shopify,CreatorAudio S1,US,2,The app crashed before I could export my voice memo.,2026-11-18T06:01:24+00:00
+FB-012,Website,CreatorAudio S1,US,4,"Nice interface, but the subscription pricing needs clarification.",2026-11-18T03:01:24+00:00
+FB-013,TikTok Shop,CreatorAudio S1,US,2,Audio file failed to save; can the team recover my project?,2026-11-18T00:01:24+00:00
+FB-014,Shopify,CreatorAudio S1,UK,5,Perfect companion for field recording.,2026-11-17T21:01:24+00:00
+FB-015,Amazon,CreatorAudio S1,US,3,"Missing USB cable, but customer service replied.",2026-11-17T18:01:24+00:00

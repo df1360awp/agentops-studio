@@ -1,0 +1,23 @@
+services:
+  agentops:
+    build: .
+    ports:
+      - "127.0.0.1:8765:8765"
+    environment:
+      AGENTOPS_DB_PATH: /app/data/studio.sqlite3
+      AGENTOPS_SEED_SAMPLE: ${AGENTOPS_SEED_SAMPLE:-0}
+      AGENTOPS_LOCAL_CONTAINER: "1"
+      AGENTOPS_API_TOKEN: ${AGENTOPS_API_TOKEN:-}
+      OPENAI_COMPAT_API_KEY: ${OPENAI_COMPAT_API_KEY:-}
+      OPENAI_COMPAT_MODEL: ${OPENAI_COMPAT_MODEL:-}
+      OPENAI_COMPAT_BASE_URL: ${OPENAI_COMPAT_BASE_URL:-https://api.openai.com/v1}
+    volumes:
+      - agentops_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8765/api/health',timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+volumes:
+  agentops_data:

@@ -1,0 +1,19 @@
+{
+  "name": "AgentOps · Local Agent Workflow Interview Demo",
+  "active": false,
+  "settings": {"executionOrder":"v1"},
+  "nodes": [
+    {"parameters": {},"id":"9c7720cb-78aa-49b1-a05c-d7bfd2bba100","name":"Manual Demo Trigger","type":"n8n-nodes-base.manualTrigger","typeVersion":1,"position":[240,260]},
+    {"parameters":{"method":"POST","url":"http://host.docker.internal:8765/api/workflows/voc/run","options":{}},"id":"d488ef73-3f09-4f83-b749-6d1283b2d111","name":"VOC Feedback Agent","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[480,260]},
+    {"parameters":{"method":"POST","url":"http://host.docker.internal:8765/api/workflows/ads/run","options":{}},"id":"7de164fd-03f1-4305-9e2c-752ead8e9222","name":"Ads Decision Agent","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[720,260]},
+    {"parameters":{"method":"POST","url":"http://host.docker.internal:8765/api/workflows/kol/run","options":{}},"id":"a129b31b-46ab-4c9b-9b31-59ef5efaa333","name":"Creator Selection Agent","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[960,260]},
+    {"parameters":{"method":"POST","url":"http://host.docker.internal:8765/api/workflows/brief/run","options":{}},"id":"20a409ec-2b80-4e9d-a56a-b3d6b63c0444","name":"CEO Brief Agent","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[1200,260]}
+  ],
+  "connections": {
+    "Manual Demo Trigger": {"main":[[{"node":"VOC Feedback Agent","type":"main","index":0}]]},
+    "VOC Feedback Agent": {"main":[[{"node":"Ads Decision Agent","type":"main","index":0}]]},
+    "Ads Decision Agent": {"main":[[{"node":"Creator Selection Agent","type":"main","index":0}]]},
+    "Creator Selection Agent": {"main":[[{"node":"CEO Brief Agent","type":"main","index":0}]]}
+  },
+  "pinData":{},"tags":[]
+}

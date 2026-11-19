@@ -1,0 +1,12 @@
+**/__pycache__
+**/.pytest_cache
+**/*.pyc
+.git
+.env
+.venv
+venv
+*.sqlite3*
+*.db*
+preview
+*.zip
+*.png

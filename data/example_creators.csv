@@ -1,0 +1,8 @@
+id,handle,channel,market,followers,engagement,brand_fit,fee,fraud_flag
+KOL-01,@echoeswithmia,TikTok,US,158000,5.8,94.0,1800.0,0
+KOL-02,@soundbyjames,YouTube,US,81000,7.2,91.0,1250.0,0
+KOL-03,@studio_minute,Instagram,UK,64000,4.9,88.0,900.0,0
+KOL-04,@viral_everyday,TikTok,US,690000,0.9,62.0,8500.0,1
+KOL-05,@maker_june,TikTok,CA,36000,6.1,85.0,600.0,0
+KOL-06,@musicplanet,YouTube,DE,230000,2.2,78.0,3500.0,0
+KOL-07,@audiojournal,Instagram,US,48000,4.8,92.0,1050.0,0
