@@ -56,6 +56,18 @@ python -m app.cli run --every 3600
 
 上述 `example_*.csv` 是**虚构数据**，用于仅本地测试。要自动填充完整虚构样例，启动前显式指定 `AGENTOPS_SEED_SAMPLE=1`；普通使用不要设置，默认是 `0`。
 
+## 在界面配置真实千问 API（Windows 推荐方式）
+
+1. 在 Windows 双击 `start_windows.bat`（默认 `http://127.0.0.1:8766`，避开本机其他项目的 8765 端口）。
+2. 打开左侧 **「模型设置」**；粘贴从百炼 API Key 页面复制的密钥。
+3. 将百炼控制台「手动配置」的 **OpenAI 兼容地址**完整粘贴到接口地址（含 `/compatible-mode/v1`，不要附加 `/chat/completions`）。
+4. 模型名选 `qwen3.7-plus`，点「保存配置」；再点「测试连接」，将产生一条实际模型请求（少量 Token）。
+5. 在「业务 AI 助手」切换至「真实 LLM API」，即可发起问答。**其他四条工作流仍采用确定性规则，而非 LLM Agent 自动编排**。
+
+Windows 使用当前登录账户的 **DPAPI** 对 API Key 加密，密钥保存至当前用户的 `%LOCALAPPDATA%\AgentOpsStudio\model-settings.json`，不写入仓库、业务数据库或浏览器 LocalStorage。无法通过另一台电脑或其他Windows用户直接解密。Linux/macOS 使用仅用户可读的权限文件（不具备等价的密钥加密），请使用专门的密钥管理器加强保护。服务器仅监听本机 `127.0.0.1`，请勿直接对公网暴露模型配置接口。
+
+如果选择百炼的 **非默认业务空间**，应优先使用其提供的工作空间专属 OpenAI 兼容地址。密钥和地址必须对应；请自行在控制台开启额度保护。
+
 ## Docker
 
 ```bash

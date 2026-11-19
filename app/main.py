@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, File, UploadFile, Body, Request
 from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from . import store, engine, llm
+from . import store, engine, llm, model_settings
 
 store.initialize()
 ROOT=Path(__file__).resolve().parents[1]
@@ -21,6 +21,11 @@ app=FastAPI(title='AgentOps Studio',description='Evidence-traceable DTC operatio
 # set AGENTOPS_API_TOKEN to a strong random secret and use TLS in front of Uvicorn.
 @app.middleware('http')
 async def security_boundary(request: Request, call_next):
+    if request.url.path.startswith('/api/model-settings'):
+        # Credential management is always localhost-only, even with an API token.
+        if not request.client or request.client.host not in ('127.0.0.1','::1','testclient'):
+            from fastapi.responses import JSONResponse
+            return JSONResponse({'detail':'模型密钥管理仅限本机访问'},status_code=403)
     if request.url.path.startswith('/api/') and request.url.path not in ('/api/health','/api/model-config'):
         token=os.environ.get('AGENTOPS_API_TOKEN','')
         if token:
@@ -43,6 +48,12 @@ async def security_boundary(request: Request, call_next):
 class ApprovalDecision(BaseModel):
     decision: Literal['approved','rejected']
     comment: str=Field(default='',max_length=500)
+
+class ModelSettingsInput(BaseModel):
+    api_key: str = Field(default='', max_length=512)
+    base_url: str = Field(min_length=10, max_length=600)
+    model: str = Field(min_length=2, max_length=120)
+
 
 class ChatRequest(BaseModel):
     question: str=Field(min_length=1,max_length=500)
@@ -129,6 +140,34 @@ def model_config():
     s=llm.settings()
     return {'configured':s['configured'],'model':s['model'],'mode':'optional_api'}
 
+@app.get('/api/model-settings')
+def get_model_settings():
+    return model_settings.public()
+
+
+@app.post('/api/model-settings')
+def save_model_settings(item: ModelSettingsInput):
+    try:
+        return model_settings.save(item.api_key, item.base_url, item.model)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except RuntimeError:
+        raise HTTPException(status_code=500, detail='密钥保存失败，请检查本机用户权限')
+
+
+@app.delete('/api/model-settings')
+def delete_model_settings():
+    return model_settings.clear()
+
+
+@app.post('/api/model-settings/test')
+def check_model_settings():
+    try:
+        return llm.test_connection()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
 @app.post('/api/copilot')
 def copilot(item:ChatRequest):
     """Rule-based explainable answer, not a language-model inference."""
@@ -136,7 +175,7 @@ def copilot(item:ChatRequest):
     over=store.get_overview()
     if item.mode=='llm':
         if not llm.settings()['configured']:
-            raise HTTPException(status_code=409,detail='真实模型尚未配置；请先设置环境变量。')
+            raise HTTPException(status_code=409,detail='真实模型尚未配置；请打开「模型设置」粘贴API Key。')
         with store.connect() as db:
             voc,_,_=engine._voc(db)
             ads,_,_=engine._ads(db)
