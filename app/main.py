@@ -11,11 +11,12 @@ from fastapi import FastAPI, HTTPException, File, UploadFile, Body, Request
 from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from . import store, engine, llm, model_settings
+from . import store, engine, llm, model_settings, ai_workflows
 
 store.initialize()
+ai_workflows.initialize()
 ROOT=Path(__file__).resolve().parents[1]
-app=FastAPI(title='AgentOps Studio',description='Evidence-traceable DTC operations with real CSV/JSON ingestion and human approval.',version='2.0.0')
+app=FastAPI(title='AgentOps Studio',description='Evidence-traceable DTC operations with real CSV/JSON ingestion and human approval.',version='2.1.0')
 
 # Without an API token the application is strictly local-only. For network access,
 # set AGENTOPS_API_TOKEN to a strong random secret and use TLS in front of Uvicorn.
@@ -53,15 +54,23 @@ class ModelSettingsInput(BaseModel):
     api_key: str = Field(default='', max_length=512)
     base_url: str = Field(min_length=10, max_length=600)
     model: str = Field(min_length=2, max_length=120)
+    fast_model: str = Field(default='qwen3.5-plus-2026-02-15', min_length=2, max_length=120)
 
 
 class ChatRequest(BaseModel):
     question: str=Field(min_length=1,max_length=500)
     mode: Literal["rules","llm"]="rules"
+    route: Literal["fast","complex"]="complex"
+
+
+class AIWorkflowRequest(BaseModel):
+    consent_to_external_processing: bool = False
+    force: bool = False
+    route: Literal["auto","fast","complex"] = "auto"
 
 @app.get('/api/health')
 def health():
-    return {'ok':True,'version':'2.0.0','data_mode':'sample' if os.getenv('AGENTOPS_SEED_SAMPLE','0')=='1' else 'imported_or_empty','engine_mode':'deterministic_rules','external_side_effects':False,'authentication_enabled':bool(os.environ.get('AGENTOPS_API_TOKEN'))}
+    return {'ok':True,'version':'2.1.0','data_mode':'sample' if os.getenv('AGENTOPS_SEED_SAMPLE','0')=='1' else 'imported_or_empty','engine_mode':'deterministic_rules','external_side_effects':False,'authentication_enabled':bool(os.environ.get('AGENTOPS_API_TOKEN'))}
 
 @app.get('/api/overview')
 def overview():return store.get_overview()
@@ -122,8 +131,9 @@ def export_dataset(dataset:str):
 
 @app.post('/api/reset')
 def reset():
+    ai_workflows.clear_reports()
     store.reset()
-    return {'ok':True,'message':'已清空本地数据，若显式开启样例模式则恢复样例'}
+    return {'ok':True,'message':'已清空本地数据、AI分析记录、运行日志和审批记录；若显式开启样例模式则恢复样例'}
 
 @app.get('/api/knowledge')
 def knowledge(q:str=''):
@@ -138,7 +148,7 @@ def knowledge(q:str=''):
 @app.get('/api/model-config')
 def model_config():
     s=llm.settings()
-    return {'configured':s['configured'],'model':s['model'],'mode':'optional_api'}
+    return {'configured':s['configured'],'model':s['model'],'fast_model':s['fast_model'],'mode':'dual_model_api'}
 
 @app.get('/api/model-settings')
 def get_model_settings():
@@ -148,7 +158,7 @@ def get_model_settings():
 @app.post('/api/model-settings')
 def save_model_settings(item: ModelSettingsInput):
     try:
-        return model_settings.save(item.api_key, item.base_url, item.model)
+        return model_settings.save(item.api_key, item.base_url, item.model, item.fast_model)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except RuntimeError:
@@ -163,7 +173,29 @@ def delete_model_settings():
 @app.post('/api/model-settings/test')
 def check_model_settings():
     try:
-        return llm.test_connection()
+        return llm.test_connection('complex')
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.post('/api/model-settings/test-all')
+def check_all_model_settings():
+    return llm.test_all_connections()
+
+
+@app.get('/api/ai-reports')
+def ai_reports(limit: int = 30):
+    return ai_workflows.list_reports(limit)
+
+
+@app.post('/api/workflows/{slug}/ai-analyze')
+def ai_analyze_workflow(slug: str, item: AIWorkflowRequest):
+    if not item.consent_to_external_processing:
+        raise HTTPException(status_code=400, detail='请确认将脱敏后的工作流摘要发送到百炼进行AI分析。')
+    try:
+        return ai_workflows.analyze(slug, force=item.force, route=item.route)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
     except RuntimeError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 
@@ -183,10 +215,10 @@ def copilot(item:ChatRequest):
             knowledge=store.dicts(db.execute('SELECT id,title,body FROM knowledge').fetchall())
         context={'overview':over,'voc_clusters':voc['clusters'],'ads':ads['details'],'kol':kol['scored'],'sop':knowledge,'sample_data':over['sample_data']}
         try:
-            answer=llm.complete(item.question,context)
+            meta=llm.complete_with_meta(item.question,context,route=item.route)
         except RuntimeError as exc:
             raise HTTPException(status_code=502,detail=str(exc))
-        return {'answer':answer,'evidence':[{'id':k['id'],'title':k['title']} for k in knowledge], 'mode':'llm_api','disclaimer':'若启用了真实模型，数据将发送到所配置的第三方服务。输出需要人工核对。'}
+        return {'answer':meta['answer'],'model':meta['model'],'route':meta['route'],'usage':meta['usage'],'evidence':[{'id':k['id'],'title':k['title']} for k in knowledge], 'mode':'llm_api','disclaimer':'若启用了真实模型，数据将发送到所配置的第三方服务。输出需要人工核对。'}
     with store.connect() as db:
         matches=store.dicts(db.execute('SELECT id,title,section,body FROM knowledge').fetchall())
     if any(t in q for t in ('广告','投流','roas','预算','campaign','ad ')):

@@ -67,7 +67,8 @@ def load() -> dict:
         key = obj['api_key']
     else:
         raise RuntimeError('The local model settings are not readable by this account')
-    return {'api_key': key, 'base_url': obj['base_url'], 'model': obj['model']}
+    return {'api_key': key, 'base_url': obj['base_url'], 'model': obj['model'],
+            'fast_model': obj.get('fast_model') or 'qwen3.5-plus-2026-02-15'}
 
 
 def public() -> dict:
@@ -79,20 +80,27 @@ def public() -> dict:
         'key_mask': '已保存（不会回显）' if api_key else '尚未配置',
         'base_url': obj.get('base_url') or os.getenv('OPENAI_COMPAT_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1'),
         'model': obj.get('model') or os.getenv('OPENAI_COMPAT_MODEL', 'qwen3.7-plus'),
+        'fast_model': obj.get('fast_model') or os.getenv('AGENTOPS_FAST_MODEL', 'qwen3.5-plus-2026-02-15'),
         'storage': 'Windows DPAPI（本机用户加密）' if sys.platform == 'win32' else '本地受限权限文件',
     }
 
 
 def credentials() -> tuple[str, str, str]:
+    return route_credentials('complex')
+
+
+def route_credentials(route: str = 'complex') -> tuple[str, str, str]:
     obj = load()
-    return (
-        obj.get('api_key') or os.getenv('OPENAI_COMPAT_API_KEY') or os.getenv('OPENAI_API_KEY', ''),
-        obj.get('base_url') or os.getenv('OPENAI_COMPAT_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1'),
-        obj.get('model') or os.getenv('OPENAI_COMPAT_MODEL', 'qwen3.7-plus')
-    )
+    key = obj.get('api_key') or os.getenv('OPENAI_COMPAT_API_KEY') or os.getenv('OPENAI_API_KEY', '')
+    url = obj.get('base_url') or os.getenv('OPENAI_COMPAT_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1')
+    if route == 'fast':
+        model = obj.get('fast_model') or os.getenv('AGENTOPS_FAST_MODEL', 'qwen3.5-plus-2026-02-15')
+    else:
+        model = obj.get('model') or os.getenv('OPENAI_COMPAT_MODEL', 'qwen3.7-plus')
+    return key, url, model
 
 
-def save(api_key: str, base_url: str, model: str) -> dict:
+def save(api_key: str, base_url: str, model: str, fast_model: str = '') -> dict:
     existing = load()
     key = api_key.strip() if api_key else existing.get('api_key', '')
     if not key:
@@ -104,13 +112,16 @@ def save(api_key: str, base_url: str, model: str) -> dict:
     if len(url) > 600 or parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
         raise ValueError('接口地址必须是有效的 HTTPS Base URL')
     if not re.fullmatch(r'[A-Za-z0-9._/-]{2,120}', model.strip()):
-        raise ValueError('模型名称格式不正确')
+        raise ValueError('主模型名称格式不正确')
+    fast = (fast_model or existing.get('fast_model') or os.getenv('AGENTOPS_FAST_MODEL', 'qwen3.5-plus-2026-02-15')).strip()
+    if not re.fullmatch(r'[A-Za-z0-9._/-]{2,120}', fast):
+        raise ValueError('快速模型名称格式不正确')
     path = _file()
     path.parent.mkdir(parents=True, exist_ok=True)
     if sys.platform != 'win32':
         os.chmod(path.parent, 0o700)
     payload = {
-        'base_url': url, 'model': model.strip(),
+        'base_url': url, 'model': model.strip(), 'fast_model': fast,
         'api_key': base64.b64encode(_dpapi(key.encode('utf-8'), protect=True)).decode('ascii') if sys.platform == 'win32' else key,
         'encrypted': 'win-dpapi' if sys.platform == 'win32' else 'permissions-only'
     }
